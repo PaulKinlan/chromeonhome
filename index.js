@@ -87,7 +87,16 @@ app.get('/list', (req, res) => {
 // Just to demonstrate the app working fetch on root of the app causes the PDF to be generated.
 app.get('/', (req, res) => {
   let url = req.query.url;
-  console.log(`GET ${url}`)
+  console.log(`GET ${url}`);
+
+  if(url == "" || url == undefined) {
+    res.send(`{
+          "speech": "No URL",
+          "displayText": "No URL",
+          "source": "Paul Kinlan"
+        }`);
+    return;
+  }
 
   chrome.New((err, tab) => {
     if (!err) {
@@ -121,24 +130,28 @@ app.post('/', (req, res) => {
     let url = query.result.resolvedQuery;
     let parameters = query.result.parameters;
   
-    chrome.New(() => {
-     chrome(instance => {
-      instance.Page.loadEventFired(render.bind(this, instance, res));
-      instance.Page.enable(); 
-      instance.once('ready', () => {
-        instance.Page.navigate({ url: url });
-      });
-      instance.once('error', (err) => {
-        res.send(`{
-          "speech": "Sorry, there was an error",
-          "displayText": "Sorry, there was an error",
-          "source": "Paul Kinlan"
-        }`);
-        console.error(err);
-        instance.close();
-      });
-    })
-  });
+    chrome.New((err, tab) => {
+      if (!err) {
+        console.log(tab);
+      }
+      
+      chrome(tab, instance => {
+        instance.Page.loadEventFired(render.bind(this, instance, res));
+        instance.Page.enable(); 
+        instance.once('ready', () => {
+          instance.Page.navigate({ url: url });
+        });
+        instance.once('error', (err) => {
+          console.error(err);
+          res.send(`{
+            "speech": "Sorry, there was an error",
+            "displayText": "Sorry, there was an error",
+            "source": "Paul Kinlan"
+          }`);
+          instance.close();
+        });
+      })
+    });
   }
   else {
     res.send(`{
