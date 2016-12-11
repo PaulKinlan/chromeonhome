@@ -5,6 +5,9 @@ let chrome = require('chrome-remote-interface');
 let bodyParser = require('body-parser');
 let spawn = require('child_process').spawn;
 
+// Inspired by http://www.zackarychapple.guru/chrome/2016/08/24/chrome-headless.html
+// and also inspired by https://hub.docker.com/r/justinribeiro/chrome-headless/ 
+
 // The second argument when starting node is the location of the headless_shell binary.
 if (process.argv[ 2 ] === undefined) {
   throw Error('No headless binary path provided.');
@@ -41,7 +44,15 @@ const render = (instance, res) => {
       })
       .then(() => {
         instance.close();
+      })
+      .catch((err) => {
+        console.error(err);
+        instance.close();
       });
+  })
+  .catch((err) => {
+    console.error(err);
+    instance.close();
   });
 };
 
@@ -72,13 +83,23 @@ app.get('/', (req, res) => {
       instance.once('ready', () => {
         instance.Page.navigate({ url: url });
       });
+      instance.once('error', (err) => {
+        console.error(err);
+        res.send(`{
+          "speech": "Sorry, there was an error",
+          "displayText": "Sorry, there was an error",
+          "source": "Paul Kinlan"
+        }`);
+        instance.close();
+      });
     })
   });
-    //.catch(err => console.log(err));
 });
 
 app.post('/', (req, res) => {
   let query = req.body;
+
+  console.log(query);
 
   if(query.result.action == 'browse.open') {
     let url = query.result.resolvedQuery;
@@ -89,6 +110,15 @@ app.post('/', (req, res) => {
       instance.Page.enable(); 
       instance.once('ready', () => {
         instance.Page.navigate({ url: url });
+      });
+      instance.once('error', (err) => {
+        res.send(`{
+          "speech": "Sorry, there was an error",
+          "displayText": "Sorry, there was an error",
+          "source": "Paul Kinlan"
+        }`);
+        console.error(err);
+        instance.close();
       });
     })
   });
