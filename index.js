@@ -1,4 +1,5 @@
 let express = require('express');
+let stream = require('express-stream');
 let fs = require('fs');
 let chrome = require('chrome-remote-interface');
 let spawn = require('child_process').spawn;
@@ -15,19 +16,44 @@ spawn(process.argv[ 2 ], ['--no-sandbox', '--remote-debugging-port=9222','--wind
 
 let app = express();
 
-function readTitle(instance, response) {
-  instance.DOM.getDocument()
-    .then(documentNode => {
-      console.log(`DocumentNode`, documentNode);
-      return instance.Accessibility.getPartialAXTree(documentNode.root, true);
-    })
-    .then(nodes => {
-      return response.send(nodes);
-    })
-    .catch(err => {
-      console.log("error", err);
-      response.send(err);
-    });
+
+const DOMProperties = {};
+
+const render = (instance, res) => {
+
+  instance.DOM.getDocument(-1).then(document => {
+
+    const title = getTitle(instance, document)
+        .catch(error => error )
+        .then(title => DOMProperties.title = title )
+        
+    const body = getBody(instance, document)
+        .catch(error => error)
+        .then(body => DOMProperties.body = body )
+
+    Promise.all([title, body])
+      .then(() => {
+        res.send(`{
+          "speech": "${DOMProperties.title}",
+          "displayText": "${DOMProperties.body}",
+          "source": "Paul Kinlan"
+        }`);
+      });
+  });
+};
+
+const getTitle = function(instance, document) {
+  return instance.DOM.querySelector({'nodeId': document.root.nodeId, 'selector': 'title'})
+    .then(node => instance.DOM.resolveNode(node))
+    .then(node => instance.Runtime.getProperties(node.object))
+    .then(properties => properties.result.find(el => el.name  == 'text').value.value);
+}
+
+const getBody = function(instance, document) {
+  return instance.DOM.querySelector({'nodeId': document.root.nodeId, 'selector': 'body'})
+    .then(node => instance.DOM.resolveNode(node))
+    .then(node => instance.Runtime.getProperties(node.object))
+    .then(properties => properties.result.find(el => el.name  == 'innerText').value.value);
 }
 
 // Just to demonstrate the app working fetch on root of the app causes the PDF to be generated.
@@ -36,7 +62,7 @@ app.get('/', (req, res) => {
  
    chrome.New(function () {
      chrome(chromeInstance => {
-       chromeInstance.Page.loadEventFired(readTitle.bind(null, chromeInstance, res));
+       chromeInstance.Page.loadEventFired(render.bind(this, chromeInstance, res));
        chromeInstance.Page.enable();
        chromeInstance.once('ready', () => {
          chromeInstance.Page.navigate({ url: url });
