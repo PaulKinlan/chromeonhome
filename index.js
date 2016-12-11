@@ -2,6 +2,7 @@ let express = require('express');
 let stream = require('express-stream');
 let fs = require('fs');
 let chrome = require('chrome-remote-interface');
+let bodyParser = require('body-parser');
 let spawn = require('child_process').spawn;
 
 // The second argument when starting node is the location of the headless_shell binary.
@@ -56,6 +57,8 @@ const getBody = function(instance, document) {
     .then(properties => properties.result.find(el => el.name  == 'innerText').value.value);
 }
 
+app.use(bodyParser.json({type: 'application/json'}));
+
 // Just to demonstrate the app working fetch on root of the app causes the PDF to be generated.
 app.get('/', (req, res) => {
   let url = req.query.url;
@@ -71,7 +74,23 @@ app.get('/', (req, res) => {
    });
 });
 
-app.listen(3000, function () {
+app.post('/', function (request, response) {
+  let url = req.query.url;
+ 
+   chrome.New(function () {
+     chrome(chromeInstance => {
+       chromeInstance.Page.loadEventFired(render.bind(this, chromeInstance, res));
+       chromeInstance.Page.enable();
+       chromeInstance.once('ready', () => {
+         chromeInstance.Page.navigate({ url: url });
+       })
+     });
+   });
+  
+});
+
+
+app.listen(8080, function () {
   chrome.Version().then(version => {
     console.log(version)
   })
