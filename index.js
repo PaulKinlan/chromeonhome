@@ -17,12 +17,11 @@ spawn(process.argv[ 2 ], ['--no-sandbox', '--remote-debugging-port=9222','--wind
 
 let app = express();
 
-
 const DOMProperties = {};
 
 const render = (instance, res) => {
 
-  instance.DOM.getDocument(-1).then(document => {
+  return instance.DOM.getDocument(-1).then(document => {
 
     const title = getTitle(instance, document)
         .catch(error => error )
@@ -39,6 +38,9 @@ const render = (instance, res) => {
           "displayText": "${DOMProperties.title}\n\n${DOMProperties.body}",
           "source": "Paul Kinlan"
         }`);
+      })
+      .then(() => {
+        instance.close();
       });
   });
 };
@@ -62,38 +64,48 @@ app.use(bodyParser.json({type: 'application/json'}));
 // Just to demonstrate the app working fetch on root of the app causes the PDF to be generated.
 app.get('/', (req, res) => {
   let url = req.query.url;
- 
-   chrome.New(function () {
-     chrome(chromeInstance => {
-       chromeInstance.Page.loadEventFired(render.bind(this, chromeInstance, res));
-       chromeInstance.Page.enable();
-       chromeInstance.once('ready', () => {
-         chromeInstance.Page.navigate({ url: url });
-       })
-     });
-   });
+
+  chrome.New(() => {
+     chrome(instance => {
+      instance.Page.loadEventFired(render.bind(this, instance, res));
+      instance.Page.enable(); 
+      instance.once('ready', () => {
+        instance.Page.navigate({ url: url });
+      });
+    })
+  });
+    //.catch(err => console.log(err));
 });
 
-app.post('/', function (request, response) {
-  let url = req.query.url;
- 
-   chrome.New(function () {
-     chrome(chromeInstance => {
-       chromeInstance.Page.loadEventFired(render.bind(this, chromeInstance, res));
-       chromeInstance.Page.enable();
-       chromeInstance.once('ready', () => {
-         chromeInstance.Page.navigate({ url: url });
-       })
-     });
-   });
+app.post('/', (req, res) => {
+  let query = req.body;
+
+  if(query.result.action == 'browse.open') {
+    let url = query.result.resolvedQuery;
   
+    chrome.New(() => {
+     chrome(instance => {
+      instance.Page.loadEventFired(render.bind(this, instance, res));
+      instance.Page.enable(); 
+      instance.once('ready', () => {
+        instance.Page.navigate({ url: url });
+      });
+    })
+  });
+  }
+  else {
+    res.send(`{
+          "speech": "Sorry, there was an error",
+          "displayText": "Sorry, there was an error",
+          "source": "Paul Kinlan"
+        }`);
+  }
 });
-
 
 app.listen(8080, function () {
   chrome.Version().then(version => {
     console.log(version)
   })
   .catch(err=> console.log('Error in Version', err));
-  console.log('Export app running on 3000!');
+  console.log('Export app running on 8080!');
 });

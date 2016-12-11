@@ -58,7 +58,7 @@ ADD ./package.json /opt/stickmanventures/package.json
 
 WORKDIR /opt/stickmanventures/
 
-# expose 3000 so we can connect to it
-EXPOSE 3000
+# expose 8080 so we can connect to it
+EXPOSE 8080
 
 CMD ["node", "index.js", "/opt/stickmanventures/chrome-headless/headless_shell" ]
