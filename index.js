@@ -103,6 +103,7 @@ app.post('/', (req, res) => {
 
   if(query.result.action == 'browse.open') {
     let url = query.result.resolvedQuery;
+    let parameters = query.result.parameters;
   
     chrome.New(() => {
      chrome(instance => {
