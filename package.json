@@ -1,0 +1,8 @@
+{
+  "name": "readpage",
+  "version": "0.0.1",
+  "dependencies": {
+    "chrome-remote-interface": "^0.17.0",
+    "express": "^4.14.0"
+  }
+}
