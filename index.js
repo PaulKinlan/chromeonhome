@@ -34,8 +34,8 @@ const render = (instance, res) => {
     Promise.all([title, body])
       .then(() => {
         res.send(`{
-          "speech": "${DOMProperties.title}",
-          "displayText": "${DOMProperties.body}",
+          "speech": "${DOMProperties.title}\n\n${DOMProperties.body}",
+          "displayText": "${DOMProperties.title}\n\n${DOMProperties.body}",
           "source": "Paul Kinlan"
         }`);
       });
