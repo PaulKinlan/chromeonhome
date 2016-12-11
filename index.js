@@ -57,7 +57,7 @@ const render = (instance, res) => {
     instance.close();
   });
 };
-sublicense
+
 const getTitle = function(instance, document) {
   return instance.DOM.querySelector({'nodeId': document.root.nodeId, 'selector': 'title'})
     .then(node => instance.DOM.resolveNode(node))
