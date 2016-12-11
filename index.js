@@ -5,6 +5,8 @@ let chrome = require('chrome-remote-interface');
 let bodyParser = require('body-parser');
 let spawn = require('child_process').spawn;
 
+// I am certain that this can get into an infinate loop, call the site to read this site.
+
 // Inspired by http://www.zackarychapple.guru/chrome/2016/08/24/chrome-headless.html
 // and also inspired by https://hub.docker.com/r/justinribeiro/chrome-headless/ 
 
@@ -36,11 +38,11 @@ const render = (instance, res) => {
 
     Promise.all([title, body])
       .then(() => {
-        res.send(`{
-          "speech": "${DOMProperties.title}\n\n${DOMProperties.body}",
-          "displayText": "${DOMProperties.title}\n\n${DOMProperties.body}",
+        res.json({
+          "speech": `${DOMProperties.title}\n\n${DOMProperties.body}`,
+          "displayText": `${DOMProperties.title}\n\n${DOMProperties.body}`,
           "source": "Paul Kinlan"
-        }`);
+        });
       })
       .then(() => {
         instance.close();
@@ -55,7 +57,7 @@ const render = (instance, res) => {
     instance.close();
   });
 };
-
+sublicense
 const getTitle = function(instance, document) {
   return instance.DOM.querySelector({'nodeId': document.root.nodeId, 'selector': 'title'})
     .then(node => instance.DOM.resolveNode(node))
@@ -76,10 +78,10 @@ app.get('/list', (req, res) => {
   chrome.List((err, tabs) => {
     if (!err) {
       console.log(tabs);
-      res.send(tabs);
+      res.json(tabs);
     }
     else {
-      res.send(tabs);
+      res.json(tabs);
     }
   });
 });
@@ -89,12 +91,14 @@ app.get('/', (req, res) => {
   let url = req.query.url;
   console.log(`GET ${url}`);
 
+  res.set('Content-Type', 'application/json');
+
   if(url == "" || url == undefined) {
-    res.send(`{
+    res.json({
           "speech": "No URL",
           "displayText": "No URL",
           "source": "Paul Kinlan"
-        }`);
+        });
     return;
   }
 
@@ -110,11 +114,11 @@ app.get('/', (req, res) => {
       });
       instance.once('error', (err) => {
         console.error(err);
-        res.send(`{
+        res.json({
           "speech": "Sorry, there was an error",
           "displayText": "Sorry, there was an error",
           "source": "Paul Kinlan"
-        }`);
+        });
         instance.close();
       });
     })
@@ -126,6 +130,8 @@ app.post('/', (req, res) => {
 
   console.log('POST', query);
 
+  res.set('Content-Type', 'application/json');
+
   if(query.result.action == 'browse.open') {
     let url = query.result.resolvedQuery;
     let parameters = query.result.parameters;
@@ -134,7 +140,7 @@ app.post('/', (req, res) => {
       if (!err) {
         console.log(tab);
       }
-      
+
       chrome(tab, instance => {
         instance.Page.loadEventFired(render.bind(this, instance, res));
         instance.Page.enable(); 
@@ -143,22 +149,22 @@ app.post('/', (req, res) => {
         });
         instance.once('error', (err) => {
           console.error(err);
-          res.send(`{
+          res.json({
             "speech": "Sorry, there was an error",
             "displayText": "Sorry, there was an error",
             "source": "Paul Kinlan"
-          }`);
+          });
           instance.close();
         });
       })
     });
   }
   else {
-    res.send(`{
+    res.json({
           "speech": "Sorry, there was an error",
           "displayText": "Sorry, there was an error",
           "source": "Paul Kinlan"
-        }`);
+        });
   }
 });
 
