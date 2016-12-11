@@ -72,12 +72,28 @@ const getBody = function(instance, document) {
 
 app.use(bodyParser.json({type: 'application/json'}));
 
+app.get('/list', (req, res) => {
+  chrome.List((err, tabs) => {
+    if (!err) {
+      console.log(tabs);
+      res.send(tabs);
+    }
+    else {
+      res.send(tabs);
+    }
+  });
+});
+
 // Just to demonstrate the app working fetch on root of the app causes the PDF to be generated.
 app.get('/', (req, res) => {
   let url = req.query.url;
+  console.log(`GET ${url}`)
 
-  chrome.New(() => {
-     chrome(instance => {
+  chrome.New((err, tab) => {
+    if (!err) {
+      console.log(tab);
+    }
+    chrome(tab, instance => {
       instance.Page.loadEventFired(render.bind(this, instance, res));
       instance.Page.enable(); 
       instance.once('ready', () => {
@@ -99,7 +115,7 @@ app.get('/', (req, res) => {
 app.post('/', (req, res) => {
   let query = req.body;
 
-  console.log(query);
+  console.log('POST', query);
 
   if(query.result.action == 'browse.open') {
     let url = query.result.resolvedQuery;
